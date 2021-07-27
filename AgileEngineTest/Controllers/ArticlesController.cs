@@ -3,85 +3,104 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace AgileEngineTest.Controllers
 {
     public class ArticlesController : Controller
     {
-        // GET: ArticlesController
-        public ActionResult Index()
+        #region Private properties
+        private IRepository _repository;
+        #endregion
+
+        public ArticlesController(IRepository repository)
         {
-            return View();
+            _repository = repository;
         }
 
-        // GET: ArticlesController/Details/5
-        public ActionResult Details(int id)
-        {
-            return View();
-        }
-
-        // GET: ArticlesController/Create
-        public ActionResult Create()
-        {
-            return View();
-        }
-
-        // POST: ArticlesController/Create
+        #region CRUD
+        //I'll name every method assuming it's async even though  it's not implemented like that
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
+        public IActionResult PostAsync([FromBody] Article article)
         {
             try
             {
-                return RedirectToAction(nameof(Index));
+                if (string.IsNullOrEmpty(article.Title))
+                {
+                    return BadRequest();
+                }
+                var result = _repository.Create(article);
+                article.Id = result;
+                return Created($"/api/articles/{result}", article);
             }
-            catch
+            catch (Exception)
             {
-                return View();
+                throw;
             }
         }
 
-        // GET: ArticlesController/Edit/5
-        public ActionResult Edit(int id)
-        {
-            return View();
-        }
-
-        // POST: ArticlesController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
+        [HttpDelete("{id}")]
+        public IActionResult DeleteAsync(Guid id)
         {
             try
             {
-                return RedirectToAction(nameof(Index));
+                var result = _repository.Delete(id);
+                if (!result)
+                {
+                    return NotFound();
+                }
+
+                return Ok();
             }
-            catch
+            catch (Exception)
             {
-                return View();
+                throw;
             }
         }
 
-        // GET: ArticlesController/Delete/5
-        public ActionResult Delete(int id)
-        {
-            return View();
-        }
-
-        // POST: ArticlesController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
+        [HttpPut("{id}")]
+        public IActionResult PutAsync(Guid id, [FromBody] Article newArticle)
         {
             try
             {
-                return RedirectToAction(nameof(Index));
+                if (string.IsNullOrEmpty(newArticle.Title))
+                {
+                    return BadRequest();
+                }
+                newArticle.Id = id;
+                var result = _repository.Update(newArticle);
+                if (!result)
+                {
+                    return NotFound();
+                }
+
+                return Ok();
             }
-            catch
+            catch (Exception)
             {
-                return View();
+                throw;
             }
         }
+
+        [HttpGet("{id}")]
+        public IActionResult GetAsync(Guid id)
+        {
+            try
+            {
+                var result = _repository.Get(id);
+                if(result == null)
+                {
+                    return NotFound();
+                }
+
+                return Ok(result);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        #endregion
     }
 }
